@@ -1,6 +1,5 @@
 from openai import OpenAI
 import streamlit as st
-import sounddevice as sd
 import soundfile as sf
 import requests
 
