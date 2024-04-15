@@ -5,11 +5,6 @@ import sounddevice as sd
 import numpy as np
 import soundfile as sf
 import base64
-import os
-
-proxy_address = "127.0.0.1:7890"
-os.environ["http_proxy"] = proxy_address
-os.environ["https_proxy"] = proxy_address
 
 # 全局变量存储语音数据
 audio_data = None
