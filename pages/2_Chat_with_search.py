@@ -1,7 +1,6 @@
 import streamlit as st
 import requests
 from gradio_client import Client
-import sounddevice as sd
 import numpy as np
 import soundfile as sf
 import base64
