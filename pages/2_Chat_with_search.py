@@ -3,9 +3,10 @@ import requests
 from gradio_client import Client
 import numpy as np
 import soundfile as sf
+import sounddevice as sd
+import wave
 import base64
 
-# 全局变量存储语音数据
 audio_data = None
 
 # 语音识别
@@ -64,22 +65,29 @@ def text_to_speech(text, lang='en'):
 
 
 # 录音函数
-def record_audio(sample_rate=16000):
-    st.write("请开始说话，录音将持续直到您点击停止...")
-    audio_data = sd.rec(frames=int(sample_rate * 10), samplerate=sample_rate, channels=1, dtype="int16")
-    st.write("录音进行中...")
+def record_audio(seconds):
+    fs = 44100
+    print("开始录音，请说话...")
+    audio_data = sd.rec(int(seconds * fs), samplerate=fs, channels=1, dtype='int16')
+    sd.wait()
+    print("录音结束.")
     return audio_data
 
 # 保存录音数据到WAV文件
-def save_audio(filename):
-    global audio_data
-    # 保存录音数据到WAV文件
-    sf.write(filename, audio_data, 44100, subtype='PCM_16')
+def save_audio(audio_data, filename):
+    wf = wave.open(filename, 'wb')
+    wf.setnchannels(1)
+    wf.setsampwidth(2)
+    wf.setframerate(44100)
+    wf.writeframes(audio_data.tobytes())
+    wf.close()
+
 
 # 显示录音数据
 def display_audio(filename):
-    audio_data_saved = np.array(sf.read(filename)[0])
-    st.audio(audio_data_saved, format='audio/wav', sample_rate=44100)
+    with open(filename, "rb") as audio_file:
+        audio_bytes = audio_file.read()
+        st.audio(audio_bytes, format="audio/wav")
 
 # 音频上传函数
 def upload_audio():
@@ -92,7 +100,7 @@ def upload_audio():
             f.write(uploaded_file.getvalue())
 
         # 读取上传的音频文件并保存到audio_data
-        audio_data, _ = sf.read("uploaded_audio.wav")
+        audio_data, _ = sf.read("output.wav")
 
 
 
@@ -111,14 +119,14 @@ if processing_type == "语音识别":
         seconds_to_record = st.slider("录音时长（秒）", min_value=1, max_value=10, value=3)
         if st.button("开始录音"):
             # 执行录音操作
-            record_audio(seconds_to_record)
+            audio_data = record_audio(seconds_to_record)
                 
     # 如果选择上传音频文件
     elif choice == "上传音频文件":
         upload_audio()
 
     if audio_data is not None:
-        save_audio("output.wav")
+        save_audio(audio_data, "output.wav")
         display_audio("output.wav")
         st.write("正在识别语音，请稍候...")
         recognition_result = recognize_speech("output.wav")
@@ -132,7 +140,7 @@ elif processing_type == "语音增强":
     if choice == "录音":
         seconds_to_record = st.slider("录音时长（秒）", min_value=1, max_value=10, value=3)
         if st.button("开始录音"):
-            record_audio(seconds_to_record)
+            audio_data = record_audio(seconds_to_record)
     # 如果选择上传音频文件
     elif choice == "上传音频文件":
         upload_audio()
