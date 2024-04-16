@@ -6,11 +6,6 @@ import soundfile as sf
 from streamlit_webrtc import webrtc_streamer, AudioProcessorBase, ClientSettings, WebRtcMode
 from pydub import AudioSegment
 import base64
-import os
-
-proxy_address = "127.0.0.1:7890"
-os.environ["http_proxy"] = proxy_address
-os.environ["https_proxy"] = proxy_address
 
 if "audio_data" not in st.session_state:
     st.session_state.audio_data = None
