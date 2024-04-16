@@ -3,167 +3,143 @@ import requests
 from gradio_client import Client
 import numpy as np
 import soundfile as sf
-import sounddevice as sd
-import wave
+from streamlit_webrtc import webrtc_streamer, AudioProcessorBase, ClientSettings, WebRtcMode
+from pydub import AudioSegment
 import base64
+import os
 
-audio_data = None
+proxy_address = "127.0.0.1:7890"
+os.environ["http_proxy"] = proxy_address
+os.environ["https_proxy"] = proxy_address
 
-# 语音识别
-def recognize_speech(audio_file):
-    API_URL = "https://api-inference.huggingface.co/models/openai/whisper-large-v3"
-    headers = {"Authorization": "Bearer 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"}
+if "audio_data" not in st.session_state:
+    st.session_state.audio_data = None
 
-    def recognize(filename):
-        with open(filename, "rb") as f:
-            data = f.read()
-        response = requests.post(API_URL, headers=headers, data=data)
-        return response.json()
+# 录音并返回音频数据
+def record_audio(seconds_to_record):
+    # 使用容器创建录音部分
+    with st.container():
+        # 创建 WebRTC 流以录制音频
+        webrtc_ctx = webrtc_streamer(
+            key="sendonly-audio",
+            mode=WebRtcMode.SENDONLY,
+            audio_receiver_size=1024,
+            rtc_configuration={
+                "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
+            },
+            media_stream_constraints={"audio": True, "video": False},
+        )
 
-    output = recognize(audio_file)
-    return output
+        # 开始旋转加载动画
+        spinner_text = st.empty()
+        spinner = st.spinner(text="recording...")
 
-# 语音增强
-def enhance_audio(audio_file):
-    EA_URL = "https://api-inference.huggingface.co/models/speechbrain/sepformer-whamr-enhancement"
-    headers = {"Authorization": "Bearer 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"}
+        # 等待开始录音
+        while not st.session_state.get('recording_started'):
+            pass
 
-    def enhance(filename):
-        with open(filename, "rb") as f:
-            data = f.read()
-        response = requests.post(EA_URL, headers=headers, data=data)
-        return response.json()
-
-    output = enhance(audio_file)
-    if output is not None:
-        enhanced_audio_data = base64.b64decode(output[0]["blob"])
-        return enhanced_audio_data
-    else:
-        return None;
-
-# TTS
-def text_to_speech(text, lang='en'):
-    client = Client("https://xzjosh-kobe-bert-vits2-2-3.hf.space/--replicas/9fhp9/")
-    example_audio = "./audio/audio_sample.wav"
-    result = client.predict(
-        text, 
-        "科比", 
-        0.4, 
-        0.1,
-        0.1,
-        2, 
-        "EN",
-        example_audio, 
-        "Angry", 
-        "Text prompt",
-        "", 
-        0, 
-        fn_index=0
-    )
-    audio_path = result[1]
-    return audio_path
-
-
-# 录音函数
-def record_audio(seconds):
-    fs = 44100
-    print("开始录音，请说话...")
-    audio_data = sd.rec(int(seconds * fs), samplerate=fs, channels=1, dtype='int16')
-    sd.wait()
-    print("录音结束.")
-    return audio_data
-
-# 保存录音数据到WAV文件
-def save_audio(audio_data, filename):
-    wf = wave.open(filename, 'wb')
-    wf.setnchannels(1)
-    wf.setsampwidth(2)
-    wf.setframerate(44100)
-    wf.writeframes(audio_data.tobytes())
-    wf.close()
+        # 检查是否有音频接收器
+        if webrtc_ctx.audio_receiver:
+            print("receiver")
+            try:
+                recording_time = 0
+                # 开始计时录音时间
+                while recording_time < seconds_to_record:
+                    print(recording_time)
+                    # 获取音频帧
+                    audio_frames = webrtc_ctx.audio_receiver.get_frames(timeout=3)
+                    if not audio_frames:
+                        st.write("no audio received...")
+                        break
+                    sound_chunk = AudioSegment.empty()
+                    try:
+                        # 遍历音频帧并添加到音频块中
+                        for audio_frame in audio_frames:
+                            sound = AudioSegment(
+                                data=audio_frame.to_ndarray().tobytes(),
+                                sample_width=audio_frame.format.bytes,
+                                frame_rate=audio_frame.sample_rate,
+                                channels=len(audio_frame.layout.channels),
+                            )
+                            sound_chunk += sound
+                        # 如果音频块不为空，则将其保存到会话状态的音频数据中
+                        if len(sound_chunk) > 0:
+                            st.session_state.audio_data = sound_chunk
+                            recording_time += len(sound_chunk) / sound_chunk.frame_rate
+                            spinner.text("recording... ({}s)".format(round(recording_time, 2)))
+                    except Exception as e:
+                        st.write("Error:", e)
+                        break
+            except Exception as e:
+                st.write("Error:", e)
+        else:
+            st.write("no audio receiver...")
 
 
-# 显示录音数据
-def display_audio(filename):
-    with open(filename, "rb") as audio_file:
-        audio_bytes = audio_file.read()
-        st.audio(audio_bytes, format="audio/wav")
+       
+
+# 保存音频数据到文件
+def save_audio(filename="output.wav"):
+    # 检查会话状态中是否存在音频数据
+    sample = st.session_state.audio_data
+    # 检查音频数据是否为空
+    audio_available = sample is not None
+
+    # 如果音频可用，则保存音频到文件
+    if audio_available:
+        if st.button("保存音频"):
+            sample.export(filename, format="wav")
+
+def display_audio():
+    # 检查会话状态中是否存在音频数据
+    sample = st.session_state.audio_data
+    # 检查音频数据是否为空
+    audio_available = sample is not None
+
+    # 如果音频可用，则显示音频播放器
+    if audio_available:
+        st.audio(
+            sample.export(format="wav", codec="pcm_s16le", bitrate="128k").read()
+        )
+
 
 # 音频上传函数
 def upload_audio():
-    global audio_data
-
+    # 显示上传文件的区域
     uploaded_file = st.file_uploader("上传音频文件（覆盖旧的录音）", type=["wav", "mp3"])
-    if uploaded_file is not None:
-        # 保存上传的音频文件
-        with open("uploaded_audio.wav", "wb") as f:
-            f.write(uploaded_file.getvalue())
 
-        # 读取上传的音频文件并保存到audio_data
-        audio_data, _ = sf.read("output.wav")
+    # 如果用户上传了文件
+    if uploaded_file is not None:
+        
+        # 读取上传的文件内容
+        audio_data = uploaded_file.read()
+        # 将文件内容转换为音频对象
+        sample = AudioSegment.from_file(uploaded_file)
+        # 将音频对象保存到会话状态中
+        st.session_state.audio_data = sample
+
 
 
 
 # Streamlit App
 st.title("🎙️ Voice Assistant")
 
-# 选择处理类型
-processing_type = st.radio("选择处理类型", ("语音识别", "语音增强", "TTS"))
+# 选择录音方式
+choice = st.radio("请选择录音方式", ("录音", "上传音频文件"))
 
-if processing_type == "语音识别":
-    # 选择录音或上传音频文件
-    choice = st.radio("请选择录音方式", ("录音", "上传音频文件"))
+# 如果选择录音
+if choice == "录音":
+       seconds_to_record = st.slider("录音时长（秒）", min_value=1, max_value=10, value=3)
+       record_audio(seconds_to_record)
 
-    # 如果选择录音
-    if choice == "录音":
-        seconds_to_record = st.slider("录音时长（秒）", min_value=1, max_value=10, value=3)
-        if st.button("开始录音"):
-            # 执行录音操作
-            audio_data = record_audio(seconds_to_record)
-                
-    # 如果选择上传音频文件
-    elif choice == "上传音频文件":
-        upload_audio()
+# 如果选择上传音频文件
+elif choice == "上传音频文件":
+    upload_audio()
 
-    if audio_data is not None:
-        save_audio(audio_data, "output.wav")
-        display_audio("output.wav")
-        st.write("正在识别语音，请稍候...")
-        recognition_result = recognize_speech("output.wav")
-        st.write("识别结果：", recognition_result["text"])
+# 如果音频数据不为空，则显示保存音频按钮和音频播放器
+if st.session_state.audio_data is not None:
+    print("!")
+    save_audio( "output.wav")
+    st.audio("output.wav", format="audio/wav")
 
-elif processing_type == "语音增强":
-    # 选择录音或上传音频文件
-    choice = st.radio("请选择录音方式", ("录音", "上传音频文件"))
-
-    # 如果选择录音
-    if choice == "录音":
-        seconds_to_record = st.slider("录音时长（秒）", min_value=1, max_value=10, value=3)
-        if st.button("开始录音"):
-            audio_data = record_audio(seconds_to_record)
-    # 如果选择上传音频文件
-    elif choice == "上传音频文件":
-        upload_audio()
-
-    # 显示录音结果
-    if audio_data is not None:
-        save_audio("output.wav")
-        display_audio("output.wav")
-
-        # 执行语音增强并获取结果
-        st.write("正在进行语音增强，请稍候...")
-        enhancement_result = enhance_audio("output.wav")
-        st.audio(enhancement_result, format='audio/wav')
-        
-if processing_type == "TTS":
-    # 输入要转换成语音的文本
-    text_input = st.text_input("请输入要转换成语音的文本")
-    # 确认按钮
-    submit_button = st.button("确认提交")
-    
-    if submit_button and text_input:
-        # 调用text_to_speech函数生成语音
-        audio_path = text_to_speech(text_input)
-        # 播放生成的语音
-        st.audio(audio_path, format='audio/wav')
     
