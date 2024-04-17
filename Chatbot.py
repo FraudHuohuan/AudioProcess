@@ -6,11 +6,6 @@ from gradio_client import Client
 from audio_recorder_streamlit import audio_recorder
 import base64
 import numpy as np
-import os
-
-proxy_address = "127.0.0.1:7890"
-os.environ["http_proxy"] = proxy_address
-os.environ["https_proxy"] = proxy_address
 
 def save_audio( audio_bytes,  output_path ):
    if audio_bytes is not None:
