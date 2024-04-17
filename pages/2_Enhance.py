@@ -1,22 +1,28 @@
 import streamlit as st
 import requests
 from audio_recorder_streamlit import audio_recorder
+import base64
 
 if "audio_data" not in st.session_state:
     st.session_state.audio_data = None
 
-def recognize_speech(audio_file):
-    API_URL = "https://api-inference.huggingface.co/models/openai/whisper-large-v3"
+# 语音增强
+def enhance_audio(audio_file):
+    EA_URL = "https://api-inference.huggingface.co/models/speechbrain/sepformer-whamr-enhancement"
     headers = {"Authorization": "Bearer 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"}
 
-    def recognize(filename):
+    def enhance(filename):
         with open(filename, "rb") as f:
             data = f.read()
-        response = requests.post(API_URL, headers=headers, data=data)
+        response = requests.post(EA_URL, headers=headers, data=data)
         return response.json()
 
-    output = recognize(audio_file)
-    return output
+    output = enhance(audio_file)
+    if output is not None:
+        enhanced_audio_data = base64.b64decode(output[0]["blob"])
+        return enhanced_audio_data
+    else:
+        return None;
 
 # 录音函数
 def record_audio(seconds):
@@ -45,7 +51,7 @@ def save_audio(output_path):
 
 
 # Streamlit App
-st.title("🎙️ Speech Recognition")
+st.title("🔊 Speech Enhancement")
 
 # 选择录音方式
 choice = st.radio("请选择录音方式", ("录音", "上传音频文件"))
@@ -61,6 +67,6 @@ elif choice == "上传音频文件":
 
 if st.session_state.audio_data is not None:
    save_audio("output.wav")
-   st.write("正在识别语音，请稍候...")
-   recognition_result = recognize_speech("output.wav")
-   st.write("识别结果：", recognition_result["text"])
+   st.write("正在进行语音增强，请稍候...")
+   enhancement_result = enhance_audio("output.wav")
+   st.audio(enhancement_result, format='audio/wav')
