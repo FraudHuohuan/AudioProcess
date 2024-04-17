@@ -6,6 +6,7 @@ from audio_recorder_streamlit import audio_recorder
 import base64
 import numpy as np
 
+
 def save_audio( audio_bytes,  output_path ):
    if audio_bytes is not None:
        st.audio(audio_bytes, format="audio/wav")
@@ -99,26 +100,13 @@ for msg in st.session_state.messages:
     st.chat_message(msg["role"]).write(msg["content"])
 
 with st.sidebar:
+    tts_enabled = st.sidebar.checkbox("启用 TTS", value=True)
+
+with st.sidebar:
     st.sidebar.title("录音功能")
     audio_bytes = audio_recorder()
     save_audio(audio_bytes, "output.wav" )
-
-if audio_bytes is not None:
-   enhancement_result = enhance_audio("output.wav")
-   recognition_result = recognize_speech(enhancement_result)
-   if(recognition_result["text"] is not None):
-       speech = recognition_result["text"]
-   st.session_state.messages.append({"role": "user", "content": speech})
-   st.chat_message("user").write(speech)
-   chat_result = send_message(speech)
-   print(chat_result)
-   audio_result = text_to_speech(chat_result)
-   print(audio_result)
-   st.session_state["messages"].append({"role": "assistant", "content": chat_result})
-   st.chat_message("assistant").write(chat_result)
-   st.session_state["messages"].append({"role": "assistant", "content": audio_result})
-   st.audio(st.session_state["messages"][-1]["content"], format="audio/wav")
-   audio_bytes = None
+    confirmation_button = st.sidebar.button("提交")
 
 if prompt := st.chat_input():
    st.session_state.messages.append({"role": "user", "content": prompt})
@@ -126,6 +114,28 @@ if prompt := st.chat_input():
    msg = send_message(prompt)
    st.session_state.messages.append({"role": "assistant", "content": msg})
    st.chat_message("assistant").write(msg)
+   msg = None
+
+elif confirmation_button is not None:
+   enhancement_result = enhance_audio("output.wav")
+   recognition_result = recognize_speech(enhancement_result)
+   if(recognition_result["text"] is not None):
+       speech = recognition_result["text"]
+   st.session_state.messages.append({"role": "user", "content": speech})
+   st.chat_message("user").write(speech)
+   st.session_state["messages"].append({"role": "assistant", "content": audio_result})
+   st.audio(st.session_state["messages"][-1]["content"], format="audio/wav")
+   msg = send_message(speech)
+   st.session_state["messages"].append({"role": "assistant", "content": msg})
+   st.chat_message("assistant").write(msg)
+   msg = None
+
+if msg is not None and tts_enabled:
+   audio_result = text_to_speech(msg)
+   st.session_state["messages"].append({"role": "assistant", "content": audio_result})
+   st.audio(st.session_state["messages"][-1]["content"], format="audio/wav")
+
+
 
     
     
