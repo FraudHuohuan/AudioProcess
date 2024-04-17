@@ -98,13 +98,6 @@ if "audio_data" not in st.session_state:
 for msg in st.session_state.messages:
     st.chat_message(msg["role"]).write(msg["content"])
 
-if prompt := st.chat_input():
-   st.session_state.messages.append({"role": "user", "content": prompt})
-   st.chat_message("user").write(prompt)
-   msg = send_message(prompt)
-   st.session_state.messages.append({"role": "assistant", "content": msg})
-   st.chat_message("assistant").write(msg)
-
 with st.sidebar:
     st.sidebar.title("录音功能")
     audio_bytes = audio_recorder()
@@ -127,6 +120,12 @@ if audio_bytes is not None:
    st.audio(st.session_state["messages"][-1]["content"], format="audio/wav")
    audio_bytes = None
 
+if prompt := st.chat_input():
+   st.session_state.messages.append({"role": "user", "content": prompt})
+   st.chat_message("user").write(prompt)
+   msg = send_message(prompt)
+   st.session_state.messages.append({"role": "assistant", "content": msg})
+   st.chat_message("assistant").write(msg)
 
     
     
