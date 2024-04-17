@@ -123,8 +123,6 @@ elif confirmation_button is not None:
        speech = recognition_result["text"]
    st.session_state.messages.append({"role": "user", "content": speech})
    st.chat_message("user").write(speech)
-   st.session_state["messages"].append({"role": "assistant", "content": audio_result})
-   st.audio(st.session_state["messages"][-1]["content"], format="audio/wav")
    msg = send_message(speech)
    st.session_state["messages"].append({"role": "assistant", "content": msg})
    st.chat_message("assistant").write(msg)
