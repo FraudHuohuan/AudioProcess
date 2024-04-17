@@ -5,12 +5,6 @@ import numpy as np
 import soundfile as sf
 from audio_recorder_streamlit import audio_recorder
 import base64
-import os
-
-
-proxy_address = "127.0.0.1:7890"
-os.environ["http_proxy"] = proxy_address
-os.environ["https_proxy"] = proxy_address
 
 # 语音识别
 def recognize_speech(audio_file):
