@@ -116,7 +116,7 @@ if prompt := st.chat_input():
    st.chat_message("assistant").write(msg)
    msg = None
 
-elif confirmation_button is not None:
+elif confirmation_button:
    enhancement_result = enhance_audio("output.wav")
    recognition_result = recognize_speech(enhancement_result)
    if(recognition_result["text"] is not None):
@@ -127,6 +127,7 @@ elif confirmation_button is not None:
    st.session_state["messages"].append({"role": "assistant", "content": msg})
    st.chat_message("assistant").write(msg)
    msg = None
+   confirmation_button = False
 
 if msg is not None and tts_enabled:
    audio_result = text_to_speech(msg)
