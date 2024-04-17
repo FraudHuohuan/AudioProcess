@@ -126,6 +126,7 @@ if audio_bytes is not None:
    st.chat_message("assistant").write(chat_result)
    st.session_state["messages"].append({"role": "assistant", "content": audio_result})
    st.audio(st.session_state["messages"][-1]["content"], format="audio/wav")
+   audio_bytes = None
 
 
     
