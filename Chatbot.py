@@ -114,11 +114,10 @@ if audio_bytes is not None:
    enhancement_result = enhance_audio("output.wav")
    recognition_result = recognize_speech(enhancement_result)
    if(recognition_result["text"] is not None):
-       prompt = recognition_result["text"]
-   print(prompt)
-   st.session_state.messages.append({"role": "user", "content": prompt})
-   st.chat_message("user").write(prompt)
-   chat_result = send_message(prompt)
+       speech = recognition_result["text"]
+   st.session_state.messages.append({"role": "user", "content": speech})
+   st.chat_message("user").write(speech)
+   chat_result = send_message(speech)
    print(chat_result)
    audio_result = text_to_speech(chat_result)
    print(audio_result)
