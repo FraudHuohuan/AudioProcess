@@ -100,7 +100,7 @@ for msg in st.session_state.messages:
     st.chat_message(msg["role"]).write(msg["content"])
 
 with st.sidebar:
-    tts_enabled = st.sidebar.checkbox("启用 TTS", value=True)
+    tts_enabled = st.sidebar.checkbox("启用 TTS", value=False)
 
 with st.sidebar:
     st.sidebar.title("录音功能")
