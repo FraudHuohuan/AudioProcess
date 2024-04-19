@@ -66,17 +66,17 @@ def send_message(data):
     content = result["choices"][0]["message"]["content"]
     return content
 
-def text_to_speech(text, lang='en'):
+def text_to_speech(text='I don't know', lang='EN', role="科比"):
     client = Client("https://xzjosh-kobe-bert-vits2-2-3.hf.space/--replicas/9fhp9/")
     example_audio = "./audio/audio_sample.wav"
     result = client.predict(
         text, 
-        "科比", 
+        role, 
         0.4, 
         0.1,
         0.1,
         2, 
-        "EN",
+        lang,
         example_audio, 
         "Angry", 
         "Text prompt",
@@ -101,6 +101,8 @@ for msg in st.session_state.messages:
 
 with st.sidebar:
     tts_enabled = st.sidebar.checkbox("启用 TTS", value=False)
+    language = st.sidebar.selectbox("选择语言", ["EN", "ZH", "JP"]) 
+    voice_actor = st.sidebar.selectbox("选择人物", ["科比", "嘉然"])
 
 with st.sidebar:
     st.sidebar.title("录音功能")
@@ -128,7 +130,7 @@ elif confirmation_button:
    confirmation_button = False
 
 if msg is not None and tts_enabled:
-   audio_result = text_to_speech(msg)
+   audio_result = text_to_speech(msg, language, voice_actor)
    st.session_state["messages"].append({"role": "assistant", "content": audio_result})
    st.audio(st.session_state["messages"][-1]["content"], format="audio/wav")
    msg = None
