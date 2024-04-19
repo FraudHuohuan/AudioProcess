@@ -67,7 +67,10 @@ def send_message(data):
     return content
 
 def text_to_speech(text="I don't know", lang='EN', role="科比"):
-    client = Client("https://xzjosh-kobe-bert-vits2-2-3.hf.space/--replicas/9fhp9/")
+    if role == "科比":
+        client = Client("https://xzjosh-kobe-bert-vits2-2-3.hf.space/--replicas/9fhp9/")
+    elif role == "嘉然":
+        client = Client("https://xzjosh-diana-bert-vits2-2-3.hf.space/--replicas/i7suh/")
     example_audio = "./audio/audio_sample.wav"
     result = client.predict(
         text, 
@@ -86,7 +89,6 @@ def text_to_speech(text="I don't know", lang='EN', role="科比"):
     )
     audio_path = result[1]
     return audio_path
-
 
 st.title("💬 Chatbot")
 st.caption("🚀 A streamlit chatbot powered by OpenAI LLM")
