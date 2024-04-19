@@ -66,7 +66,7 @@ def send_message(data):
     content = result["choices"][0]["message"]["content"]
     return content
 
-def text_to_speech(text='I don't know', lang='EN', role="科比"):
+def text_to_speech(text="I don't know", lang='EN', role="科比"):
     client = Client("https://xzjosh-kobe-bert-vits2-2-3.hf.space/--replicas/9fhp9/")
     example_audio = "./audio/audio_sample.wav"
     result = client.predict(
