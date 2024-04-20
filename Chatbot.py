@@ -66,11 +66,11 @@ def send_message(data):
     content = result["choices"][0]["message"]["content"]
     return content
 
-def text_to_speech(text="I don't know", lang='EN', role="科比"):
+def text_to_speech(text="I don't know", lang="EN", role="科比"):
     if role == "科比":
         client = Client("https://xzjosh-kobe-bert-vits2-2-3.hf.space/--replicas/9fhp9/")
-    elif role == "嘉然":
-        client = Client("https://xzjosh-diana-bert-vits2-2-3.hf.space/--replicas/i7suh/")
+    elif role == "永雏塔菲":
+        client = Client("https://xzjosh-taffy-bert-vits2-2-3.hf.space/--replicas/bbldx/")
     example_audio = "./audio/audio_sample.wav"
     result = client.predict(
         text, 
@@ -104,7 +104,7 @@ for msg in st.session_state.messages:
 with st.sidebar:
     tts_enabled = st.sidebar.checkbox("启用 TTS", value=False)
     language = st.sidebar.selectbox("选择语言", ["EN", "ZH", "JP"]) 
-    voice_actor = st.sidebar.selectbox("选择人物", ["科比", "嘉然"])
+    voice_actor = st.sidebar.selectbox("选择人物", ["科比", "永雏塔菲"])
 
 with st.sidebar:
     st.sidebar.title("录音功能")
