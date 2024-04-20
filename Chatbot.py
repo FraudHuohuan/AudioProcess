@@ -7,45 +7,49 @@ import base64
 import numpy as np
 
 
-def save_audio( audio_bytes,  output_path ):
-   if audio_bytes is not None:
-       st.audio(audio_bytes, format="audio/wav")
-       st.session_state.audio_data = audio_bytes
-       with open(output_path, "wb") as f:
-           f.write(st.session_state.audio_data)
+def save_audio(audio_bytes, output_path):
+    try:
+        if audio_bytes is not None:
+            st.audio(audio_bytes, format="audio/wav")
+            st.session_state.audio_data = audio_bytes
+            with open(output_path, "wb") as f:
+                f.write(st.session_state.audio_data)
+    except Exception as e:
+        print(f"Error in save_audio: {e}")
 
 def recognize_speech(audio_file):
     API_URL = "https://api-inference.huggingface.co/models/openai/whisper-large-v3"
     headers = {"Authorization": "Bearer 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"}
 
-    def recognize(filename):
-        with open(filename, "rb") as f:
+    try:
+        with open(audio_file, "rb") as f:
             data = f.read()
         response = requests.post(API_URL, headers=headers, data=data)
         return response.json()
-    output = recognize(audio_file)
-    return output
+    except Exception as e:
+        print(f"Error in recognize_speech: {e}")
+        return None
 
 def enhance_audio(audio_file):
     EA_URL = "https://api-inference.huggingface.co/models/speechbrain/sepformer-whamr-enhancement"
     headers = {"Authorization": "Bearer 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"}
 
-    def enhance(filename):
-        with open(filename, "rb") as f:
+    try:
+        with open(audio_file, "rb") as f:
             data = f.read()
         response = requests.post(EA_URL, headers=headers, data=data)
-        return response.json()
-
-    output = enhance(audio_file)
-    if output is not None:
-        enhanced_audio_data = base64.b64decode(output[0]["blob"])
-        temp_file_path = "enhanced_audio.wav"
-        with open(temp_file_path, "wb") as f:
-            f.write(enhanced_audio_data)
-        return temp_file_path
-        #utf8_encoded_data = base64.b64encode(enhanced_audio_data).decode('utf-8')
-    else:
-        return None;
+        output = response.json()
+        if output is not None:
+            enhanced_audio_data = base64.b64decode(output[0]["blob"])
+            temp_file_path = "enhanced_audio.wav"
+            with open(temp_file_path, "wb") as f:
+                f.write(enhanced_audio_data)
+            return temp_file_path
+        else:
+            return None
+    except Exception as e:
+        print(f"Error in enhance_audio: {e}")
+        return None
 
 def send_message(data):
     url = "https://cn2us02.opapi.win/v1/chat/completions"
@@ -61,37 +65,49 @@ def send_message(data):
             {"role": "user", "content": data}
         ]
     }
-    response = requests.post(url, headers=headers, json=payload)
-    result = response.json()
-    content = result["choices"][0]["message"]["content"]
-    return content
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        result = response.json()
+        content = result["choices"][0]["message"]["content"]
+        return content
+    except Exception as e:
+        print(f"Error in send_message: {e}")
+        return None
 
 def text_to_speech(text="I don't know", lang="EN", role="科比"):
-    if role == "科比":
-        client = Client("https://xzjosh-kobe-bert-vits2-2-3.hf.space/--replicas/9fhp9/")
-    elif role == "永雏塔菲":
-        client = Client("https://xzjosh-taffy-bert-vits2-2-3.hf.space/--replicas/bbldx/")
-    example_audio = "./audio/audio_sample.wav"
-    result = client.predict(
-        text, 
-        role, 
-        0.4, 
-        0.1,
-        0.1,
-        2, 
-        lang,
-        example_audio, 
-        "Angry", 
-        "Text prompt",
-        "", 
-        0, 
-        fn_index=0
-    )
-    audio_path = result[1]
-    return audio_path
+    try:
+        if role == "科比":
+            client = Client("https://xzjosh-kobe-bert-vits2-2-3.hf.space/--replicas/9fhp9/")
+        elif role == "永雏塔菲":
+            client = Client("https://xzjosh-taffy-bert-vits2-2-3.hf.space/--replicas/bbldx/")
+        example_audio = "./audio/audio_sample.wav"
+        result = client.predict(
+            text,
+            role,
+            0.4,
+            0.1,
+            0.1,
+            2,
+            lang,
+            example_audio,
+            "Angry",
+            "Text prompt",
+            "",
+            0,
+            fn_index=0
+        )
+        audio_path = result[1]
+        return audio_path
+    except Exception as e:
+        print(f"Error in text_to_speech: {e}")
+        return None
+
 
 st.title("💬 Chatbot")
 st.caption("🚀 A streamlit chatbot powered by OpenAI LLM")
+
+isAvailable = False
+
 if "messages" not in st.session_state:
     st.session_state["messages"] = [{"role": "assistant", "content": "How can I help you?"}]
 
@@ -118,6 +134,7 @@ if prompt := st.chat_input():
    msg = send_message(prompt)
    st.session_state.messages.append({"role": "assistant", "content": msg})
    st.chat_message("assistant").write(msg)
+   isAvailable =  True
 
 elif confirmation_button:
    enhancement_result = enhance_audio("output.wav")
@@ -130,12 +147,13 @@ elif confirmation_button:
    st.session_state["messages"].append({"role": "assistant", "content": msg})
    st.chat_message("assistant").write(msg)
    confirmation_button = False
+   isAvailable =  True
 
-if msg is not None and tts_enabled:
+if isAvailable and tts_enabled:
    audio_result = text_to_speech(msg, language, voice_actor)
    st.session_state["messages"].append({"role": "assistant", "content": audio_result})
    st.audio(st.session_state["messages"][-1]["content"], format="audio/wav")
-   msg = None
+   isAvailable =  False
 
 
 
