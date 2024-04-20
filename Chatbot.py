@@ -139,8 +139,7 @@ if prompt := st.chat_input():
 elif confirmation_button:
    enhancement_result = enhance_audio("output.wav")
    recognition_result = recognize_speech(enhancement_result)
-   if(recognition_result["text"] is not None):
-       speech = recognition_result["text"]
+   speech = recognition_result["text"]
    st.session_state.messages.append({"role": "user", "content": speech})
    st.chat_message("user").write(speech)
    msg = send_message(speech)
