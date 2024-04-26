@@ -33,7 +33,26 @@ def save_audio(output_path):
        st.success("音频已保存到 {}".format(output_path))
    else:
        st.warning("没有录制的音频可供保存！")
+def enhance_audio(audio_file):
+    EA_URL = "https://api-inference.huggingface.co/models/speechbrain/sepformer-whamr-enhancement"
+    headers = {"Authorization": "Bearer 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"}
 
+    try:
+        with open(audio_file, "rb") as f:
+            data = f.read()
+        response = requests.post(EA_URL, headers=headers, data=data)
+        output = response.json()
+        if output is not None:
+            enhanced_audio_data = base64.b64decode(output[0]["blob"])
+            temp_file_path = "enhanced_audio.wav"
+            with open(temp_file_path, "wb") as f:
+                f.write(enhanced_audio_data)
+            return temp_file_path
+        else:
+            return None
+    except Exception as e:
+        print(f"Error in enhance_audio: {e}")
+        return None
 
 def clone(text="Hello", style = "default", audio = None):
     try:
