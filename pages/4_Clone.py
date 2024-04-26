@@ -75,8 +75,9 @@ elif choice == "上传音频文件":
 if submit_button and st.session_state.audio_data is not None:
    save_audio("output.wav")
    st.write("正在进行语音克隆，请稍候...")
+   enhancement_result = enhance_audio("output.wav")
    print(text_input+"\n")
-   clone_result = clone(text_input+"\n", "default", "output.wav")
+   clone_result = clone(text_input+"\n", "default", enhancement_result)
    st.audio(clone_result, format='audio/wav')
    submit_button = False
 
